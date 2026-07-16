@@ -49,7 +49,7 @@ URL: https://www.python.org/
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 1%{?dist}
+Release: 1%{?dist}.1
 License: Python-2.0.1
 
 
@@ -442,6 +442,17 @@ Patch477: 00477-raise-an-error-when-importing-stdlib-modules-compiled-for-a-diff
 # Use decodeURIComponent() for UTF-8 support in js_output()
 # Resolved upstream: https://github.com/python/cpython/issues/149144
 Patch487: 00487-fixup-for-CVE-2026-6019.patch
+
+# 00490 # 3e8c5ad70d6a515107352d8779269240a0553f54
+# CVE-2026-15308
+#
+# pythongh-153030: Fix quadratic complexity in incremental parsing in HTMLParser (GH-153031) (GH-153039)
+#
+# When an unterminated construct (e.g. a tag or comment) spanned many
+# feed() calls, rescanning the growing buffer and concatenating new data
+# onto it were both quadratic.  New data is now accumulated in a list and
+# only joined and parsed once enough has piled up.
+Patch490: 00490-cve-2026-15308.patch
 
 # (New patches go here ^^^)
 #
@@ -1980,6 +1991,10 @@ CheckPython freethreading
 # ======================================================
 
 %changelog
+* Fri Jul 10 2026 Tomáš Hrnčiar <thrnciar@redhat.com> - 3.14.5-1.1
+- Security fix for CVE-2026-15308
+Resolves: RHEL-193775
+
 * Tue Jun 09 2026 Miro Hrončok <mhroncok@redhat.com> - 3.14.5-1
 - Update to 3.14.5
 Resolves: RHEL-176147
