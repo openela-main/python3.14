@@ -45,11 +45,11 @@ URL: https://www.python.org/
 
 #  WARNING  When rebasing to a new Python version,
 #           remember to update the python3-docs package as well
-%global general_version %{pybasever}.5
+%global general_version %{pybasever}.7
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 1%{?dist}.1
+Release: 2%{?dist}
 License: Python-2.0.1
 
 
@@ -109,30 +109,30 @@ License: Python-2.0.1
 # This needs to be manually updated when we update Python.
 # Explore the sources tarball (you need the version before %%prep is executed):
 #  $ tar -tf Python-%%{upstream_version}.tar.xz | grep whl
-%global pip_version 26.1.1
+%global pip_version 26.2.1
 %global setuptools_version 79.0.1
 # All of those also include a list of indirect bundled libs:
 # pip
 #  $ %%{_rpmconfigdir}/pythonbundles.py <(unzip -p Lib/ensurepip/_bundled/pip-*.whl pip/_vendor/vendor.txt)
 %global pip_bundled_provides %{expand:
 Provides: bundled(python3dist(cachecontrol)) = 0.14.4
-Provides: bundled(python3dist(certifi)) = 2026.2.25
-Provides: bundled(python3dist(distlib)) = 0.4
+Provides: bundled(python3dist(certifi)) = 2026.6.17
+Provides: bundled(python3dist(distlib)) = 0.4.2
 Provides: bundled(python3dist(distro)) = 1.9
-Provides: bundled(python3dist(idna)) = 3.11
+Provides: bundled(python3dist(idna)) = 3.18
 Provides: bundled(python3dist(msgpack)) = 1.1.2
 Provides: bundled(python3dist(packaging)) = 26.2
-Provides: bundled(python3dist(platformdirs)) = 4.5.1
-Provides: bundled(python3dist(pygments)) = 2.19.2
+Provides: bundled(python3dist(platformdirs)) = 4.10
+Provides: bundled(python3dist(pygments)) = 2.20
 Provides: bundled(python3dist(pyproject-hooks)) = 1.2
-Provides: bundled(python3dist(requests)) = 2.33.1
+Provides: bundled(python3dist(requests)) = 2.34.2
 Provides: bundled(python3dist(resolvelib)) = 1.2.1
 Provides: bundled(python3dist(rich)) = 14.2
 Provides: bundled(python3dist(setuptools)) = 70.3
-Provides: bundled(python3dist(tomli)) = 2.3.1
+Provides: bundled(python3dist(tomli)) = 2.4.1
 Provides: bundled(python3dist(tomli-w)) = 1.2
 Provides: bundled(python3dist(truststore)) = 0.10.4
-Provides: bundled(python3dist(urllib3)) = 2.6.3
+Provides: bundled(python3dist(urllib3)) = 2.7
 }
 # setuptools
 # vendor.txt not in .whl
@@ -258,7 +258,7 @@ Obsoletes: python%{pybasever}%{?1:-%{1}}\
 BuildRequires: autoconf
 BuildRequires: bluez-libs-devel
 BuildRequires: bzip2-devel
-BuildRequires: expat-devel
+BuildRequires: expat-devel >= 2.5.0-2
 BuildRequires: findutils
 BuildRequires: gcc
 BuildRequires: gdbm-devel
@@ -380,37 +380,24 @@ Patch251: 00251-change-user-install-location.patch
 #   The argument must be specified (instead of defaulting to ‘md5’).
 Patch329: 00329-fips.patch
 
-# 00464 # 292acffec7a379cb6d1f3c47b9e5a2f170bbadb6
-# Enable PAC and BTI protections for aarch64
+# 00466 #
+# Downstream only: Lower XML_COMBINED_VERSION threshold for reparse deferral
 #
-# Apply protection against ROP/JOP attacks for aarch64 on asm_trampoline.S
+# RHEL 9 expat 2.5.0 has XML_SetReparseDeferralEnabled backported
+# via the CVE-2023-52425 fix, but XML_COMBINED_VERSION remains 20500.
+# CPython's #if XML_COMBINED_VERSION >= 20600 guards compile the setter
+# as a no-op, so SetReparseDeferralEnabled silently does nothing and
+# GetReparseDeferralEnabled always returns False, even though the expat
+# library actually supports (and enables) reparse deferral.
 #
-# The BTI flag must be applied in the assembler sources for this class
-# of attacks to be mitigated on newer aarch64 processors.
+# Lower the threshold from 20600 to 20500 so that CPython uses the
+# backported function. This makes the Python API actually work on RHEL 9
+# and fixes test failures (test_reparse_deferral_disabled,
+# test_flush_reparse_deferral_disabled, test_simple_xml_chunk_*).
 #
-# Upstream PR: https://github.com/python/cpython/pull/130864/files
-#
-# The upstream patch is incomplete but only for the case where
-# frame pointers are not used on 3.13+.
-#
-# Since on Fedora we always compile with frame pointers the BTI/PAC
-# hardware protections can be enabled without losing Perf unwinding.
-Patch464: 00464-enable-pac-and-bti-protections-for-aarch64.patch
-
-# 00466 # e10760fb955ee33d2917f8a57bb4e24d71e5341c
-# Downstream only: Skip tests not working with older expat version
-#
-# We want to run these tests in Fedora and EPEL 10, but not in EPEL 9,
-# which has too old version of expat. We set the upper bound version
-# in the conditionalized skip to a release available in CentOS Stream 10,
-# which is tested as working.
-Patch466: 00466-downstream-only-skip-tests-not-working-with-older-expat-version.patch
-
-# 00474 # 0d9da266d5ecb31d8a417a0a5daa251a2d99389f
-# CVE-2025-15366
-#
-# Downstream only: Reject control characters in IMAP commands
-Patch474: 00474-cve-2025-15366.patch
+# The spec file BuildRequires expat-devel >= 2.5.0-2 to ensure the
+# backported function is available.
+Patch466: 00466-downstream-only-lower-xml_combined_version-threshold-for-reparse-deferral.patch
 
 # 00475 # 91e12ebfb2a88b265f3764a0d852b6fa53b2386a
 # CVE-2025-15367
@@ -433,23 +420,6 @@ Patch475: 00475-cve-2025-15367.patch
 # which is modified with this patch, hence they need a
 # direct call to the check function.
 Patch477: 00477-raise-an-error-when-importing-stdlib-modules-compiled-for-a-different-python-version.patch
-
-# 00487 #
-# Fixup for CVE-2026-6019
-# Use decodeURIComponent() for UTF-8 support in js_output()
-# Resolved upstream: https://github.com/python/cpython/issues/149144
-Patch487: 00487-fixup-for-CVE-2026-6019.patch
-
-# 00490 # 3e8c5ad70d6a515107352d8779269240a0553f54
-# CVE-2026-15308
-#
-# pythongh-153030: Fix quadratic complexity in incremental parsing in HTMLParser (GH-153031) (GH-153039)
-#
-# When an unterminated construct (e.g. a tag or comment) spanned many
-# feed() calls, rescanning the growing buffer and concatenating new data
-# onto it were both quadratic.  New data is now accumulated in a list and
-# only joined and parsed once enough has piled up.
-Patch490: 00490-cve-2026-15308.patch
 
 # (New patches go here ^^^)
 #
@@ -575,7 +545,7 @@ Summary:        Python runtime libraries
 # Combined manually from https://docs.python.org/3.14/license.html
 # Hash of Doc/license.rst which is compared in %%prep, generated with:
 # $ sha256sum Doc/license.rst | cut -f1 -d" "
-%global license_file_hash c695d550b135e53e38807e76496d1db17d22c40e461d1f3f354c86188d3305dd
+%global license_file_hash cd6f471c0bfdb099efefc25ddff9b3df8bf62e10428987f1f05e6f2f9e35d563
 # Licenses of incorporated software:
 # Mersenne Twister in _random C extension contains code under BSD-3-Clause
 # socket.getaddrinfo() and socket.getnameinfo() are BSD-3-Clause
@@ -599,7 +569,8 @@ Summary:        Python runtime libraries
 # parts of asyncio from uvloop are MIT
 # Python/qsbr.c is adapted from code under BSD-2-Clause
 # Zstandard bindings in Modules/_zstd and Lib/compression/zstd are BSD-3-Clause
-%global libs_license Python-2.0.1 AND MIT AND BSD-3-Clause AND MIT-CMU AND HPND-SMC AND BSD-2-Clause AND dtoa
+# An extract of the `Unicode Character Database` converted to an internal format is Unicode-3.0
+%global libs_license Python-2.0.1 AND MIT AND BSD-3-Clause AND MIT-CMU AND HPND-SMC AND BSD-2-Clause AND dtoa AND Unicode-3.0
 %if %{with rpmwheels}
 Requires: %{python_wheel_pkg_prefix}-pip-wheel >= 23.1.2
 License: %{libs_license}
@@ -633,6 +604,8 @@ Requires: tzdata
 
 # The sqlite3 needs version with (de)serialize API
 Requires: sqlite-libs >= 3.34.1-10
+
+Requires: expat >= 2.5.0-2
 
 %description -n %{pkgname}-libs
 This package contains runtime libraries for use by Python:
@@ -834,6 +807,7 @@ License: %{libs_license} AND Apache-2.0 AND ISC AND LGPL-2.1-only AND MPL-2.0 AN
 # See the comments in the definition of main -libs subpackage for detailed explanations
 Provides: bundled(mimalloc) = 2.12
 Requires: tzdata
+Requires: expat >= 2.5.0-2
 
 # There are files in the standard library that have python shebang.
 # We've filtered the automatic requirement out so libs are installable without
@@ -1973,6 +1947,18 @@ CheckPython freethreading
 # ======================================================
 
 %changelog
+* Tue Aug 18 2026 Miro Hrončok <mhroncok@redhat.com> - 3.14.7-2
+- On RHEL 9, also supports reparse deferral in expat
+Related: RHEL-227218
+
+* Mon Aug 17 2026 Lumír Balhar <lbalhar@redhat.com> - 3.14.7-1
+- Update to Python 3.14.7, security fix for CVE-2026-11940
+Resolves: RHEL-227218
+
+* Mon Aug 17 2026 Lumír Balhar <lbalhar@redhat.com> - 3.14.6-1
+- Update to Python 3.14.6
+Related: RHEL-227218
+
 * Fri Jul 10 2026 Tomáš Hrnčiar <thrnciar@redhat.com> - 3.14.5-1.1
 - Security fix for CVE-2026-15308
 Resolves: RHEL-193779
