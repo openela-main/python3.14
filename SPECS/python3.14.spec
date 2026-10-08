@@ -45,11 +45,11 @@ URL: https://www.python.org/
 
 #  WARNING  When rebasing to a new Python version,
 #           remember to update the python3-docs package as well
-%global general_version %{pybasever}.7
+%global general_version %{pybasever}.8
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 2%{?dist}
+Release: 1%{?dist}
 License: Python-2.0.1
 
 
@@ -829,7 +829,7 @@ This package contains runtime libraries for use by Free Threading Python:
 
 
 %package -n python%{pybasever}-freethreading-devel
-Summary: Libraries and header files needed for Free Threading Python evelopment
+Summary: Libraries and header files needed for Free Threading Python development
 # Bundled mimalloc header files are MIT
 License: Python-2.0.1 AND MIT
 Requires: python%{pybasever}-freethreading = %{version}-%{release}
@@ -1947,6 +1947,18 @@ CheckPython freethreading
 # ======================================================
 
 %changelog
+* Thu Oct 01 2026 Karolina Surma <ksurma@redhat.com> - 3.14.8-1
+- Update to Python 3.14.8
+- Security fix for CVE-2026-15310
+- Security fix for CVE-2026-15806
+- Security fix for CVE-2026-17084
+- Security fix for CVE-2026-19445
+- Security fix for CVE-2026-19553
+- Security fix for CVE-2026-19672
+- Security fix for CVE-2026-82049
+Resolves: RHEL-274141
+Resolves: RHEL-276250
+
 * Tue Aug 18 2026 Miro Hrončok <mhroncok@redhat.com> - 3.14.7-2
 - On RHEL 9, also supports reparse deferral in expat
 Related: RHEL-227218
