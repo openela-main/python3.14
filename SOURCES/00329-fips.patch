@@ -1,4 +1,4 @@
-From a659cf1967ac09d0650a8e443f573a7e5ca2fff9 Mon Sep 17 00:00:00 2001
+From 3d2a0b50e8c0e6b4795ba167075e4612feb75c9f Mon Sep 17 00:00:00 2001
 From: Charalampos Stratakis <cstratak@redhat.com>
 Date: Thu, 12 Dec 2019 16:58:31 +0100
 Subject: [PATCH 1/6] Expose blake2b and blake2s hashes from OpenSSL
@@ -12,10 +12,10 @@ used under FIPS.
  3 files changed, 222 insertions(+), 1 deletion(-)
 
 diff --git a/Lib/test/test_hashlib.py b/Lib/test/test_hashlib.py
-index c7d7b80..ddf4792 100644
+index 01f2c1e..f12b744 100644
 --- a/Lib/test/test_hashlib.py
 +++ b/Lib/test/test_hashlib.py
-@@ -469,6 +469,12 @@ class HashLibTestCase(unittest.TestCase):
+@@ -492,6 +492,12 @@ class HashLibTestCase(unittest.TestCase):
          # 2 is for hashlib.name(...) and hashlib.new(name, ...)
          self.assertGreaterEqual(len(constructors), 2)
          for hash_object_constructor in constructors:
@@ -29,10 +29,10 @@ index c7d7b80..ddf4792 100644
              computed = m.hexdigest() if not shake else m.hexdigest(length)
              self.assertEqual(
 diff --git a/Modules/_hashopenssl.c b/Modules/_hashopenssl.c
-index 0191a95..d4cd8b0 100644
+index 09aa2af..7f9385a 100644
 --- a/Modules/_hashopenssl.c
 +++ b/Modules/_hashopenssl.c
-@@ -1180,6 +1180,47 @@ _hashlib_openssl_sha512_impl(PyObject *module, PyObject *data,
+@@ -1198,6 +1198,47 @@ _hashlib_openssl_sha512_impl(PyObject *module, PyObject *data,
  }
  
  
@@ -80,7 +80,7 @@ index 0191a95..d4cd8b0 100644
  #ifdef PY_OPENSSL_HAS_SHA3
  
  /*[clinic input]
-@@ -2165,6 +2206,8 @@ static struct PyMethodDef EVP_functions[] = {
+@@ -2183,6 +2224,8 @@ static struct PyMethodDef EVP_functions[] = {
      _HASHLIB_OPENSSL_SHA256_METHODDEF
      _HASHLIB_OPENSSL_SHA384_METHODDEF
      _HASHLIB_OPENSSL_SHA512_METHODDEF
@@ -279,10 +279,10 @@ index 0e2f71d..9d67e4b 100644
 -/*[clinic end generated code: output=3e8d61a057978436 input=a9049054013a1b77]*/
 +/*[clinic end generated code: output=1314a4564d1bc42a input=a9049054013a1b77]*/
 -- 
-2.55.0
+2.56.0
 
 
-From 91ba4a46a43e235a22d7d68c910ad5843521760a Mon Sep 17 00:00:00 2001
+From dfec9926bff82ff80726a02a56e0e84fd197552c Mon Sep 17 00:00:00 2001
 From: Petr Viktorin <pviktori@redhat.com>
 Date: Thu, 25 Jul 2019 17:19:06 +0200
 Subject: [PATCH 2/6] Disable Python's hash implementations in FIPS mode,
@@ -323,10 +323,10 @@ index 0e9bd98..d4cf89c 100644
  def __get_builtin_constructor(name):
      cache = __builtin_constructor_cache
 diff --git a/Lib/test/test_hashlib.py b/Lib/test/test_hashlib.py
-index ddf4792..f8514cb 100644
+index f12b744..d3f81b5 100644
 --- a/Lib/test/test_hashlib.py
 +++ b/Lib/test/test_hashlib.py
-@@ -37,8 +37,15 @@ else:
+@@ -39,8 +39,15 @@ else:
      builtin_hash_names = builtin_hashes.strip('"').lower().split(",")
      builtin_hashes = set(map(str.strip, builtin_hash_names))
  
@@ -343,7 +343,7 @@ index ddf4792..f8514cb 100644
  
  try:
      import _hashlib
-@@ -119,6 +126,12 @@ class HashLibTestCase(unittest.TestCase):
+@@ -142,6 +149,12 @@ class HashLibTestCase(unittest.TestCase):
                      error,
                      exc_info=error,
                  )
@@ -357,7 +357,7 @@ index ddf4792..f8514cb 100644
  
      def __init__(self, *args, **kwargs):
 diff --git a/Modules/blake2module.c b/Modules/blake2module.c
-index c4fbd20..3ff8890 100644
+index 957fa73..550be0a 100644
 --- a/Modules/blake2module.c
 +++ b/Modules/blake2module.c
 @@ -303,6 +303,7 @@ static struct PyModuleDef blake2_module = {
@@ -368,7 +368,7 @@ index c4fbd20..3ff8890 100644
      return PyModuleDef_Init(&blake2_module);
  }
  
-@@ -459,6 +460,8 @@ py_blake2b_or_s_new(PyTypeObject *type, PyObject *data, int digest_size,
+@@ -482,6 +483,8 @@ py_blake2b_or_s_new(PyTypeObject *type, PyObject *data, int digest_size,
      Blake2Object *self = NULL;
      Py_buffer buf;
  
@@ -411,10 +411,10 @@ index a80b195..3b9e96c 100644
 +    if (_Py_hashlib_fips_error(exc, name)) return NULL; \
 +} while (0)
 diff --git a/configure.ac b/configure.ac
-index 967d34d..6ffd700 100644
+index f51935d..3e752eb 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -8271,7 +8271,10 @@ PY_HACL_CREATE_MODULE([MD5], [_md5], [test "$with_builtin_md5" = yes])
+@@ -8281,7 +8281,10 @@ PY_HACL_CREATE_MODULE([MD5], [_md5], [test "$with_builtin_md5" = yes])
  PY_HACL_CREATE_MODULE([SHA1], [_sha1], [test "$with_builtin_sha1" = yes])
  PY_HACL_CREATE_MODULE([SHA2], [_sha2], [test "$with_builtin_sha2" = yes])
  PY_HACL_CREATE_MODULE([SHA3], [_sha3], [test "$with_builtin_sha3" = yes])
@@ -427,10 +427,10 @@ index 967d34d..6ffd700 100644
  dnl HMAC builtin library does not need OpenSSL for now. In the future
  dnl we might want to rely on OpenSSL EVP/NID interface or implement
 -- 
-2.55.0
+2.56.0
 
 
-From 4d7f5a6e9b2bdc38971b510aa3be50a9c0959499 Mon Sep 17 00:00:00 2001
+From 967f2c5f041795f87940ce3a514392575a939fe1 Mon Sep 17 00:00:00 2001
 From: Charalampos Stratakis <cstratak@redhat.com>
 Date: Fri, 29 Jan 2021 14:16:21 +0100
 Subject: [PATCH 3/6] Use python's fall back crypto implementations only if we
@@ -480,10 +480,10 @@ index d4cf89c..c41805c 100644
  
  def file_digest(fileobj, digest, /, *, _bufsize=2**18):
 diff --git a/Lib/test/test_hashlib.py b/Lib/test/test_hashlib.py
-index f8514cb..ee06d40 100644
+index d3f81b5..973bafe 100644
 --- a/Lib/test/test_hashlib.py
 +++ b/Lib/test/test_hashlib.py
-@@ -178,7 +178,13 @@ class HashLibTestCase(unittest.TestCase):
+@@ -201,7 +201,13 @@ class HashLibTestCase(unittest.TestCase):
                          constructors.add(constructor)
  
          def add_builtin_constructor(name):
@@ -498,7 +498,7 @@ index f8514cb..ee06d40 100644
              self.constructors_to_test[name].add(constructor)
  
          _md5 = self._conditional_import_module('_md5')
-@@ -347,6 +353,20 @@ class HashLibTestCase(unittest.TestCase):
+@@ -370,6 +376,20 @@ class HashLibTestCase(unittest.TestCase):
      def test_new_upper_to_lower(self):
          self.assertEqual(hashlib.new("SHA256").name, "sha256")
  
@@ -520,10 +520,10 @@ index f8514cb..ee06d40 100644
      def test_get_builtin_constructor(self):
          get_builtin_constructor = getattr(hashlib,
 -- 
-2.55.0
+2.56.0
 
 
-From 91c2e183a9d977b5bab5ef814068804f9335bfcb Mon Sep 17 00:00:00 2001
+From 910d5e501b294287656f0a9fb7d52cb0d0e18b56 Mon Sep 17 00:00:00 2001
 From: Charalampos Stratakis <cstratak@redhat.com>
 Date: Wed, 31 Jul 2019 15:43:43 +0200
 Subject: [PATCH 4/6] Test equivalence of hashes for the various digests with
@@ -531,8 +531,8 @@ Subject: [PATCH 4/6] Test equivalence of hashes for the various digests with
 
 ---
  Lib/test/test_fips.py    | 24 ++++++++++++++++++++++++
- Lib/test/test_hashlib.py | 39 ++++++++++++++++++++++++++++++++++-----
- 2 files changed, 58 insertions(+), 5 deletions(-)
+ Lib/test/test_hashlib.py | 38 +++++++++++++++++++++++++++++++++-----
+ 2 files changed, 57 insertions(+), 5 deletions(-)
  create mode 100644 Lib/test/test_fips.py
 
 diff --git a/Lib/test/test_fips.py b/Lib/test/test_fips.py
@@ -566,10 +566,10 @@ index 0000000..1f99dd7
 +if __name__ == "__main__":
 +    unittest.main()
 diff --git a/Lib/test/test_hashlib.py b/Lib/test/test_hashlib.py
-index ee06d40..c0d6432 100644
+index 973bafe..dc967bd 100644
 --- a/Lib/test/test_hashlib.py
 +++ b/Lib/test/test_hashlib.py
-@@ -26,6 +26,7 @@ from test.support.import_helper import import_fresh_module
+@@ -28,6 +28,7 @@ from test.support.import_helper import import_fresh_module
  from test.support import requires_resource
  from test.support import threading_helper
  from http.client import HTTPException
@@ -577,7 +577,7 @@ index ee06d40..c0d6432 100644
  
  
  default_builtin_hashes = {'md5', 'sha1', 'sha2', 'sha3', 'blake2'}
-@@ -60,6 +61,11 @@ if not get_fips_mode:
+@@ -62,6 +63,10 @@ if not get_fips_mode:
      def get_fips_mode():
          return 0
  
@@ -585,11 +585,10 @@ index ee06d40..c0d6432 100644
 +    FIPS_DISABLED = {'md5'}
 +else:
 +    FIPS_DISABLED = set()
-+
+ 
  try:
-     import _blake2
- except ImportError:
-@@ -101,6 +107,14 @@ def read_vectors(hash_name):
+     import _md5
+@@ -124,6 +129,14 @@ def read_vectors(hash_name):
              parts[0] = bytes.fromhex(parts[0])
              yield parts
  
@@ -604,7 +603,7 @@ index ee06d40..c0d6432 100644
  
  class HashLibTestCase(unittest.TestCase):
      supported_hash_names = ( 'md5', 'MD5', 'sha1', 'SHA1',
-@@ -276,7 +290,7 @@ class HashLibTestCase(unittest.TestCase):
+@@ -299,7 +312,7 @@ class HashLibTestCase(unittest.TestCase):
      @unittest.skipIf(get_fips_mode(), "skip in FIPS mode")
      def test_clinic_signature(self):
          for constructor in self.hash_constructors:
@@ -613,7 +612,7 @@ index ee06d40..c0d6432 100644
                  constructor(b'')
                  constructor(data=b'')
                  constructor(string=b'')  # should be deprecated in the future
-@@ -335,7 +349,7 @@ class HashLibTestCase(unittest.TestCase):
+@@ -358,7 +371,7 @@ class HashLibTestCase(unittest.TestCase):
          ]:
              for constructor in self.hash_constructors:
                  digest_name = constructor(b'').name
@@ -622,7 +621,7 @@ index ee06d40..c0d6432 100644
                      with self.assertRaisesRegex(TypeError, errmsg):
                          constructor(*args, **kwds)
                  with self.subTest(digest_name, args=args, kwds=kwds):
-@@ -428,6 +442,8 @@ class HashLibTestCase(unittest.TestCase):
+@@ -451,6 +464,8 @@ class HashLibTestCase(unittest.TestCase):
                  self.assertIn(h.name, self.supported_hash_names)
              else:
                  self.assertNotIn(h.name, self.supported_hash_names)
@@ -631,7 +630,7 @@ index ee06d40..c0d6432 100644
              self.assertEqual(
                  h.name,
                  hashlib.new(h.name, usedforsecurity=False).name
-@@ -504,9 +520,11 @@ class HashLibTestCase(unittest.TestCase):
+@@ -527,9 +542,11 @@ class HashLibTestCase(unittest.TestCase):
          for hash_object_constructor in constructors:
  
              # OpenSSL's blake2b & blake2s don't support `key`
@@ -646,7 +645,7 @@ index ee06d40..c0d6432 100644
  
              m = hash_object_constructor(data, **kwargs)
              computed = m.hexdigest() if not shake else m.hexdigest(length)
-@@ -1148,6 +1166,17 @@ class HashLibTestCase(unittest.TestCase):
+@@ -1171,6 +1188,17 @@ class HashLibTestCase(unittest.TestCase):
                      with self.assertRaisesRegex(TypeError, "immutable type"):
                          hash_type.value = False
  
@@ -665,10 +664,10 @@ index ee06d40..c0d6432 100644
  class KDFTests(unittest.TestCase):
  
 -- 
-2.55.0
+2.56.0
 
 
-From 4bd657c4af5d70049a5bf1e12e7d011416079aa6 Mon Sep 17 00:00:00 2001
+From fc225552fa8a057061f222e2316a5bec559e99ef Mon Sep 17 00:00:00 2001
 From: Petr Viktorin <pviktori@redhat.com>
 Date: Mon, 26 Aug 2019 19:39:48 +0200
 Subject: [PATCH 5/6] Guard against Python HMAC in FIPS mode
@@ -679,7 +678,7 @@ Subject: [PATCH 5/6] Guard against Python HMAC in FIPS mode
  2 files changed, 18 insertions(+), 4 deletions(-)
 
 diff --git a/Lib/hmac.py b/Lib/hmac.py
-index 2d6016c..6e01f9c 100644
+index 2a248cb..0d58e87 100644
 --- a/Lib/hmac.py
 +++ b/Lib/hmac.py
 @@ -18,8 +18,9 @@ try:
@@ -694,7 +693,7 @@ index 2d6016c..6e01f9c 100644
  
  # The size of the digests returned by HMAC depends on the underlying
  # hashing module used.  Use digest_size from the instance of HMAC instead.
-@@ -77,12 +78,13 @@ class HMAC:
+@@ -98,12 +99,13 @@ class HMAC:
          self.__init(key, msg, digestmod)
  
      def __init(self, key, msg, digestmod):
@@ -710,18 +709,18 @@ index 2d6016c..6e01f9c 100644
          if _hmac and isinstance(digestmod, str):
              try:
                  self._init_builtin_hmac(key, msg, digestmod)
-@@ -106,6 +108,9 @@ class HMAC:
+@@ -127,6 +129,9 @@ class HMAC:
          self.block_size = self._hmac.block_size
  
      def _init_old(self, key, msg, digestmod):
 +        if _hashopenssl is not None and _hashopenssl.get_fips_mode():
 +            # In FIPS mode, use OpenSSL anyway: raise the appropriate error
 +            return self._init_openssl_hmac(key, msg, digestmod)
-         import warnings
- 
          digest_cons = _get_digest_constructor(digestmod)
+ 
+         self._hmac = None
 diff --git a/Lib/test/test_hmac.py b/Lib/test/test_hmac.py
-index 1d270b2..7721a63 100644
+index e811540..e36be6d 100644
 --- a/Lib/test/test_hmac.py
 +++ b/Lib/test/test_hmac.py
 @@ -24,6 +24,7 @@ import random
@@ -748,9 +747,9 @@ index 1d270b2..7721a63 100644
  @hashlib_helper.requires_hashdigest('sha256')
  class PythonCopyTestCase(CopyBaseTestCase, unittest.TestCase):
  
-@@ -1489,6 +1492,11 @@ class PyMiscellaneousTests(unittest.TestCase):
-             def digest(self):
-                 return self._x.digest()
+@@ -1499,6 +1502,11 @@ class PyMiscellaneousTests(unittest.TestCase):
+                 h._x = self._x.copy()
+                 return h
  
 +        if get_fips_mode():
 +            with self.assertRaises(ValueError):
@@ -760,19 +759,19 @@ index 1d270b2..7721a63 100644
          with warnings.catch_warnings():
              warnings.simplefilter('error', RuntimeWarning)
              with self.assertRaises(RuntimeWarning):
-@@ -1500,6 +1508,7 @@ class PyMiscellaneousTests(unittest.TestCase):
-                 hmac.HMAC(b'a', b'b', digestmod=MockCrazyHash)
-                 self.fail('Expected warning about small block_size')
+@@ -1525,6 +1533,7 @@ class PyMiscellaneousTests(unittest.TestCase):
+             self.assertEqual(h.digest(), expect)
+             self.assertEqual(hmac.digest(b'a', b'b', MockCrazyHash), expect)
  
 +    @unittest.skipIf(get_fips_mode(), "No builtin constructors in FIPS mode")
      @hashlib_helper.requires_hashdigest('sha256')
      def test_with_fallback(self):
          cache = getattr(hashlib, '__builtin_constructor_cache')
 -- 
-2.55.0
+2.56.0
 
 
-From f425c312610a4fc26ae716d18adc5b89996431b9 Mon Sep 17 00:00:00 2001
+From d6b1156f565a425dfceab5d7675384db78fa82ca Mon Sep 17 00:00:00 2001
 From: Charalampos Stratakis <cstratak@redhat.com>
 Date: Sat, 10 Jan 2026 23:24:10 +0100
 Subject: [PATCH 6/6] Disable _hmac when not all builtin hash modules are built
@@ -782,10 +781,10 @@ Subject: [PATCH 6/6] Disable _hmac when not all builtin hash modules are built
  1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/configure.ac b/configure.ac
-index 6ffd700..6857361 100644
+index 3e752eb..fcafae6 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -8282,7 +8282,11 @@ dnl our own for algorithm resolution.
+@@ -8292,7 +8292,11 @@ dnl our own for algorithm resolution.
  dnl
  dnl For Emscripten, we disable HACL* HMAC as it is tricky to make it work.
  dnl See https://github.com/python/cpython/issues/133042.
@@ -799,5 +798,5 @@ index 6ffd700..6857361 100644
  
  PY_STDLIB_MOD([_ctypes],
 -- 
-2.55.0
+2.56.0
 

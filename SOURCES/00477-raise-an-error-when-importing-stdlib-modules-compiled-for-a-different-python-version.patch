@@ -81,10 +81,10 @@ index 2a17c891dd..64017c666c 100644
  }
  #endif
 diff --git a/Makefile.pre.in b/Makefile.pre.in
-index 7ca65dddb9..1bef2e199a 100644
+index 1a508f5c41..37fdbdef2a 100644
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
-@@ -3427,3 +3427,6 @@ MODULE__MULTIBYTECODEC_DEPS=$(srcdir)/Modules/cjkcodecs/multibytecodec.h
+@@ -3438,3 +3438,6 @@ MODULE__MULTIBYTECODEC_DEPS=$(srcdir)/Modules/cjkcodecs/multibytecodec.h
  # Local Variables:
  # mode: makefile
  # End:
@@ -143,7 +143,7 @@ index a7835d6bdb..8460b6f09c 100644
      PyObject *m;
      readlinestate *mod_state;
 diff --git a/Objects/moduleobject.c b/Objects/moduleobject.c
-index b68584b5dd..cbf95dc92a 100644
+index 5c0d11b178..6f39ee8865 100644
 --- a/Objects/moduleobject.c
 +++ b/Objects/moduleobject.c
 @@ -50,6 +50,7 @@ _PyModule_IsExtension(PyObject *obj)
